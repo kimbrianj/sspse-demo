@@ -1,0 +1,121 @@
+---
+title: Using the sspse Package for Population Size Estimation with Respondent-Driven Sampling
+  Data
+output: html_document
+---
+
+# Introduction
+
+Respondent-driven sampling (RDS) is being more and more widely used by researchers around the world who want to survey hidden or hard-to-reach populations. In response to the demand for statistical techniques geared specifically toward RDS data, various sophisticated methods have been developed. However, many times, these methods are difficult to apply.
+
+In this paper we discuss how to use the `sspse` package to do population size estimation with RDS data. We first discuss the type of data that we can analyze. Then, we show how to find the population size estimate by applying SS-PSE. Then, we discuss how to interpret the output, as well as Markov Chain Monte Carlo (MCMC) diagnostics.
+
+# Data Requirements
+
+We need RDS data. For best results, the data should include the following variables:
+
+- `id` (a unique identifier)
+- `recruiter.id` (unique identifier of the recruiter)
+- `network.size` (personal network size, or degree)
+- `time` (time of recruitment. optional, but useful)
+
+This allows us to convert the data into an `rds.data.frame` object, which we can then use for population size estimation. The time variable is not strictly necessary, but if you do not include it, you must make sure that your data are in order of inclusion in the study.  
+
+```{r setup, include=FALSE}
+require(sspse)
+# dat <- read.csv('path/to/data.csv')
+# rdsdat <- as.rds.data.frame(dat)
+# We use our dataset that has already been prepared
+data("fauxmadrona")
+```
+
+## Visualizations?
+
+```{r}
+plot(fauxmadrona)
+```
+
+# Successive Sampling - Population Size Estimation
+
+Successive Sampling - Population Size Estimation (SS-PSE) was first introduced by [CITATION]. 
+
+Brief description of how SS-PSE works.
+
+## Priors
+
+Note that SS-PSE is a Bayesian method, so we must take care to specify priors. The `posteriorsize()` function has allowed for a degree of flexibility in specifying different priors, though many times, you will want to simply want to play around with the median value of the prior distribution for population size. 
+
+## Building Up the `posteriorsize` Function Call
+
+The bare minimum that you must provide for `posteriorsize` to run is simply the `rds.data.frame` object that we created earlier.
+
+```{r, cache=TRUE, message=FALSE}
+fmsize <- posteriorsize(fauxmadrona)
+```
+
+However, this is undesirable in the vast majority of cases because:
+
+- It uses a default prior with median of two times the sample size. This should specified based on prior knowledge of the population rather than simply using the default. 
+- It uses a default maximum unit size for an individual. If this value is too large (sometimes due to impossible values of reported personal network size), then the code may take too long to run.
+- It uses default values for burnin, interval, and samplesize. Depending on the data that you have, these values may be insufficient to reach MCMC convergence, and so higher values of burnin or samplesize may be necessary.
+- For particularly large datasets, the runtime of this function may be quite long. In order to combat this, there is an option to parallelize. 
+- In rarer cases, the default value of `maxN` might be too low, which would put an upper bound too low and our draws from the posterior size distribution will all be just the `maxN` value.
+
+## Choosing a `K` value
+
+Discussion of choice of K?
+
+## MCMC Specifications
+
+Burnin refers to the number of iterations to go through before the actual posterior draws begin. This should be high enough so that the MCMC can reach convergence. The interval is the number of steps between each draw, so that you reduce the dependence of the posterior draws on previous draws. The samplesize refers to the number of draws from the posterior distribution that we want to get. 
+
+One option might be something like this:
+
+```{r}
+#fmsize <- posteriorsize(fauxmadrona, median.prior.size = 1000, burnin = 10000, interval = 10, samplesize = 10000)
+```
+
+However, if this takes a while to run, we might want to parallelize it.
+
+## Running `posteriorsize` in Parallel
+
+We can parallelize the MCMC draws by simply using the `parallel` argument in posteriorsize. We can set how many parallel processes to run. Typically, you want to use one or two fewer cores than your computer, otherwise everything will slow down. It's possible to do this automatically using the `detectCores()` function.
+
+```{r}
+ncores <- detectCores()
+# fmsize <- posteriorsize(fauxmadrona, median.prior.size = 1000, burnin = 10000, interval = 10, samplesize = 10000, parallel = ncores)
+```
+
+Discussion of PSCOK vs MPI?
+
+# Output and Diagnostics
+
+We can look at the output using the `summary()` function.
+
+```{r}
+summary(fmsize)
+```
+
+You can also use the `plot()` function.
+
+```{r}
+plot(fmsize)
+```
+
+Note that there are actually quite a few graphs here. Here is a rundown of what each graph is showing.
+
+Additionally, you can look at the MCMC diagnostics using the `mcmc = TRUE` argument.
+
+```{r}
+plot(fmsize, mcmc = TRUE)
+```
+
+The MCMC plots are presented as pairs. On the left side are the trace plots, showing the values of the draws of each of the posterior distributions. On the right are the histograms of the draws from the posterior. For the trace plots, you are generally looking for stability -- that is, no trend up or down, with just random variation around a fixed horizontal line. For the histograms of the posterior distribution, you want to check to make sure there are no degenerate cases. For example, in some cases, if the `maxN` value was set to be too low, all of the probability mass might be put on the `maxN` value.   
+
+
+# Discussion
+
+We have provided a guide on how to use `sspse` to do population size estimation with RDS data. As with any Bayesian method, researchers should exercise care with priors when finding estimates, as they may greatly influence the estimate. Furthermore, we have shown a variety of useful tools for diagnosing issues with the RDS and with the MCMC.
+
+
+
