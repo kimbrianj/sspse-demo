@@ -29,6 +29,8 @@ require(sspse)
 data("fauxmadrona")
 ```
 
+The main benefit of using an `rds.data.frame` object is that it forces you to explicitly specify RDS variables, and it simplifies specification of various functions in `RDS` and `ssspse` packages.
+
 ## Visualizations?
 
 ```{r}
@@ -55,19 +57,21 @@ fmsize <- posteriorsize(fauxmadrona)
 
 However, this is undesirable in the vast majority of cases because:
 
-- It uses a default prior with median of two times the sample size. This should specified based on prior knowledge of the population rather than simply using the default. 
-- It uses a default maximum unit size for an individual. If this value is too large (sometimes due to impossible values of reported personal network size), then the code may take too long to run.
+- It uses a default prior with median of two times the sample size. This should be specified based on prior knowledge of the population rather than simply using the default. 
+- It uses a default maximum unit size for an individual. If this value is too large (sometimes due to impossible values of reported personal network size), then the code may take a very long time to run.
 - It uses default values for burnin, interval, and samplesize. Depending on the data that you have, these values may be insufficient to reach MCMC convergence, and so higher values of burnin or samplesize may be necessary.
 - For particularly large datasets, the runtime of this function may be quite long. In order to combat this, there is an option to parallelize. 
 - In rarer cases, the default value of `maxN` might be too low, which would put an upper bound too low and our draws from the posterior size distribution will all be just the `maxN` value.
 
 ## Choosing a `K` value
 
+What is K? 
+
 Discussion of choice of K?
 
 ## MCMC Specifications
 
-Burnin refers to the number of iterations to go through before the actual posterior draws begin. This should be high enough so that the MCMC can reach convergence. The interval is the number of steps between each draw, so that you reduce the dependence of the posterior draws on previous draws. The samplesize refers to the number of draws from the posterior distribution that we want to get. 
+Burn-in refers to the number of iterations to go through before the actual posterior draws begin. This should be high enough so that the MCMC can reach convergence. The interval is the number of steps between each draw, so that you reduce the dependence of the posterior draws on previous draws. The samplesize refers to the number of draws from the posterior distribution that we want to get. 
 
 One option might be something like this:
 
@@ -82,11 +86,11 @@ However, if this takes a while to run, we might want to parallelize it.
 We can parallelize the MCMC draws by simply using the `parallel` argument in posteriorsize. We can set how many parallel processes to run. Typically, you want to use one or two fewer cores than your computer, otherwise everything will slow down. It's possible to do this automatically using the `detectCores()` function.
 
 ```{r}
-ncores <- detectCores()
+ncores <- detectCores() - 2
 # fmsize <- posteriorsize(fauxmadrona, median.prior.size = 1000, burnin = 10000, interval = 10, samplesize = 10000, parallel = ncores)
 ```
 
-Discussion of PSCOK vs MPI?
+Discussion of PSOCK vs MPI?
 
 # Output and Diagnostics
 
@@ -96,6 +100,8 @@ We can look at the output using the `summary()` function.
 summary(fmsize)
 ```
 
+## Posterior Distribution and Plots
+
 You can also use the `plot()` function.
 
 ```{r}
@@ -104,9 +110,11 @@ plot(fmsize)
 
 Note that there are actually quite a few graphs here. Here is a rundown of what each graph is showing.
 
+## MCMC Diagnostic Plots
+
 Additionally, you can look at the MCMC diagnostics using the `mcmc = TRUE` argument.
 
-```{r}
+```{r, fig.dim=c(10,10)}
 plot(fmsize, mcmc = TRUE)
 ```
 
